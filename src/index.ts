@@ -1,4 +1,4 @@
-import { Project, SourceFile, SyntaxKind, printNode } from "ts-morph";
+import { Project, SourceFile, SyntaxKind, printNode, Node } from "ts-morph";
 import { intersect } from "set-fns";
 
 const argv = require("yargs-parser")(process.argv.slice(2));
@@ -11,18 +11,34 @@ const jestGlobalApis = ["afterAll", "afterEach", "beforeAll", "beforeEach", "des
 
 const insertViteImport = (sourceFile: SourceFile) => {
   const callExpressions = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression);
-  const callExpressionsText = callExpressions.map((callExpression) => callExpression.getExpression().getText());
-  const intersection = intersect(callExpressionsText, jestGlobalApis);
-  const importDeclarationString = `import { ${[...intersection].sort().join(", ")} } from "vitest";`;
+  const namedImport = [];
+  const api = [];
+
+  for (const callExpression of callExpressions) {
+    const expression = callExpression.getExpression();
+    if (Node.isIdentifier(expression)) {
+      const expressionText = expression.getText();
+      namedImport.push(expressionText);
+    }
+    if (Node.isPropertyAccessExpression(expression)) {
+      const propExpression = expression.getExpression();
+      if (propExpression.getText() === "jest") {
+        propExpression.replaceWithText("vi");
+        api.push("vi");
+      }
+    }
+  }
+
+  const intersection = intersect(namedImport, jestGlobalApis);
+  const importDeclarationString = `import { ${[...intersection, ...api].sort().join(", ")} } from "vitest";`;
 
   sourceFile.insertStatements(0, importDeclarationString);
 };
 
-
 export const migrate = (path: string) => {
   const sourceFiles = project.getSourceFiles(path);
 
-  console.log(sourceFiles.length)
+  console.log(sourceFiles.length);
 
   for (const sourceFile of sourceFiles) {
     console.log(sourceFile.getFilePath());
