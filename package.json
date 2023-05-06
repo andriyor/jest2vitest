@@ -1,0 +1,23 @@
+{
+  "name": "jest2vitest",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "set-fns": "^1.0.0",
+    "ts-morph": "^18.0.0",
+    "typescript": "^5.0.4",
+    "vitest": "^0.31.0",
+    "yargs-parser": "^21.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.1.0",
+    "prettier": "2.8.8"
+  }
+}
