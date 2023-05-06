@@ -8,7 +8,7 @@ import { migrate } from '../src'
 
 
 beforeAll(async () => {
-  await migrate('test/__fixtures__/**/*.input.{tsx,ts,js}');
+  await migrate('test/__fixtures__/**/*.input.{tsx,ts,js,mjs}');
 });
 
 
