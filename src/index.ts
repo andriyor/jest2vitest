@@ -19,59 +19,60 @@ const jestGlobalApiProps: Record<string, string[]> = {
 const jestGlobalApiPropsKeys = Object.keys(jestGlobalApiProps);
 
 const insertViteImport = (sourceFile: SourceFile) => {
-  const callExpressions = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression);
-  const namedImport = [];
-  const api = [];
+  const namedImport: string[] = [];
+  const api: string[] = [];
 
-  for (const callExpression of callExpressions) {
-    const expression = callExpression.getExpression();
-    if (Node.isIdentifier(expression)) {
-      const expressionText = expression.getText();
-      namedImport.push(expressionText);
-    }
-
-    if (Node.isPropertyAccessExpression(expression)) {
-      const propExpression = expression.getExpression();
-
-      if (Node.isIdentifier(propExpression)) {
-        const propExpressionText = propExpression.getText();
-        const propExpressionName = expression.getName();
-
-        if (
-          jestGlobalApiPropsKeys.includes(propExpressionText) &&
-          jestGlobalApiProps[propExpressionText].includes(propExpressionName)
-        ) {
-          api.push(propExpressionText);
-        }
-
-        if (propExpressionText === "jest") {
-          propExpression.replaceWithText("vi");
-          api.push("vi");
-        }
+  sourceFile.forEachDescendant(node => {
+    if (Node.isCallExpression(node)) {
+      const expression = node.getExpression();
+      if (Node.isIdentifier(expression)) {
+        const expressionText = expression.getText();
+        namedImport.push(expressionText);
       }
-
-      // TODO: create functions
-      if (Node.isPropertyAccessExpression(propExpression)) {
-        const propExpressionNested = propExpression.getExpression();
-        if (Node.isIdentifier(propExpressionNested)) {
-          const propExpressionText = propExpressionNested.getText();
+  
+      if (Node.isPropertyAccessExpression(expression)) {
+        const propExpression = expression.getExpression();
+  
+        if (Node.isIdentifier(propExpression)) {
+          const propExpressionText = propExpression.getText();
           const propExpressionName = expression.getName();
-
+  
           if (
             jestGlobalApiPropsKeys.includes(propExpressionText) &&
             jestGlobalApiProps[propExpressionText].includes(propExpressionName)
           ) {
             api.push(propExpressionText);
           }
-
+  
           if (propExpressionText === "jest") {
-            propExpressionNested.replaceWithText("vi");
+            propExpression.replaceWithText("vi");
             api.push("vi");
+          }
+        }
+  
+        // TODO: create functions
+        if (Node.isPropertyAccessExpression(propExpression)) {
+          const propExpressionNested = propExpression.getExpression();
+          if (Node.isIdentifier(propExpressionNested)) {
+            const propExpressionText = propExpressionNested.getText();
+            const propExpressionName = expression.getName();
+  
+            if (
+              jestGlobalApiPropsKeys.includes(propExpressionText) &&
+              jestGlobalApiProps[propExpressionText].includes(propExpressionName)
+            ) {
+              api.push(propExpressionText);
+            }
+  
+            if (propExpressionText === "jest") {
+              propExpressionNested.replaceWithText("vi");
+              api.push("vi");
+            }
           }
         }
       }
     }
-  }
+  })
 
   const intersection = intersect(namedImport, jestGlobalApis);
   const importDeclarationString = `import { ${[...new Set([...intersection, ...api])]
