@@ -13,7 +13,7 @@ const insertViteImport = (sourceFile: SourceFile) => {
   const callExpressions = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression);
   const callExpressionsText = callExpressions.map((callExpression) => callExpression.getExpression().getText());
   const intersection = intersect(callExpressionsText, jestGlobalApis);
-  const importDeclarationString = `import { ${[...intersection].join(", ")} } from 'vitest';`;
+  const importDeclarationString = `import { ${[...intersection].sort().join(", ")} } from "vitest";`;
 
   sourceFile.insertStatements(0, importDeclarationString);
 };
@@ -29,7 +29,7 @@ export const migrate = (path: string) => {
     insertViteImport(sourceFile);
   }
 
-  project.save();
+  return project.save();
 };
 
 // migrate('test/__fixtures__/**/*.input.{tsx,ts,js}');

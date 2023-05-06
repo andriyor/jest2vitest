@@ -1,11 +1,16 @@
 import { readdirSync } from 'fs'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { migrate } from '../src'
 
 
-migrate('test/__fixtures__/**/*.input.{tsx,ts,js}');
+
+
+beforeAll(async () => {
+  await migrate('test/__fixtures__/**/*.input.{tsx,ts,js}');
+});
+
 
 describe('transformer', () => {
   const inputFileRegex = /(.*).input.m?[jt]sx?$/
