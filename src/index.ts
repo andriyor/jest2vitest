@@ -1,4 +1,14 @@
-import { Project, SourceFile, Node, ImportDeclaration, CallExpression, PropertyAccessExpression } from "ts-morph";
+import {
+  Project,
+  SourceFile,
+  Node,
+  ImportDeclaration,
+  CallExpression,
+  PropertyAccessExpression,
+  Identifier,
+  ts,
+  LeftHandSideExpression,
+} from "ts-morph";
 import { intersect } from "set-fns";
 
 const argv = require("yargs-parser")(process.argv.slice(2));
@@ -29,6 +39,11 @@ const apiNamesRecord: Record<string, string> = {
 };
 
 const apiNamesToMakeAsync = ["genMockFromModule", "createMockFromModule", "requireActual", "requireMock"];
+
+const jestToVitestApiMap: Record<string, string> = {
+  fit: "it",
+  jest: "vi",
+};
 
 const handleApiNamesRecord = (node: CallExpression, expression: PropertyAccessExpression) => {
   const propExpressionName = expression.getName();
@@ -102,6 +117,27 @@ const getNamedImports = (sourceFile: SourceFile) => {
   return intersect(namedImport, jestGlobalApis);
 };
 
+const handleIdentifier = (
+  expression: LeftHandSideExpression<ts.LeftHandSideExpression>,
+  propertyExpression: PropertyAccessExpression
+) => {
+  if (Node.isIdentifier(expression)) {
+    const propExpressionText = expression.getText();
+    const expressionName = propertyExpression.getName();
+
+    if (
+      jestGlobalApiPropsKeys.includes(propExpressionText) &&
+      jestGlobalApiProps[propExpressionText].includes(expressionName)
+    ) {
+      return propExpressionText;
+    }
+
+    if (jestToVitestApiMap[propExpressionText]) {
+      return jestToVitestApiMap[propExpressionText];
+    }
+  }
+};
+
 const getImports = (sourceFile: SourceFile) => {
   const api: string[] = [];
   sourceFile.forEachDescendant((node) => {
@@ -111,48 +147,22 @@ const getImports = (sourceFile: SourceFile) => {
         const propExpression = expression.getExpression();
         if (Node.isPropertyAccessExpression(propExpression)) {
           const propExpressionNested = propExpression.getExpression();
-          if (Node.isIdentifier(propExpressionNested)) {
-            const propExpressionText = propExpressionNested.getText();
-            const expressionName = expression.getName();
-
-            if (
-              jestGlobalApiPropsKeys.includes(propExpressionText) &&
-              jestGlobalApiProps[propExpressionText].includes(expressionName)
-            ) {
-              api.push(propExpressionText);
-            }
-
-            if (propExpressionText === "jest") {
-              api.push("vi");
-            }
+          const res = handleIdentifier(propExpressionNested, expression);
+          if (res) {
+            api.push(res);
           }
         }
 
-        if (Node.isIdentifier(propExpression)) {
-          const propExpressionText = propExpression.getText();
-          const propExpressionName = expression.getName();
-
-          if (
-            jestGlobalApiPropsKeys.includes(propExpressionText) &&
-            jestGlobalApiProps[propExpressionText].includes(propExpressionName)
-          ) {
-            api.push(propExpressionText);
-          }
-
-          if (propExpressionText === "fit") {
-            api.push("it");
-          }
-
-          if (propExpressionText === "jest") {
-            api.push("vi");
-          }
+        const res = handleIdentifier(propExpression, expression);
+        if (res) {
+          api.push(res);
         }
       }
 
       if (Node.isIdentifier(expression)) {
         const expressionText = expression.getText();
-        if (expressionText === "fit") {
-          api.push("it");
+        if (jestToVitestApiMap[expressionText]) {
+          api.push(jestToVitestApiMap[expressionText]);
         }
       }
     }
