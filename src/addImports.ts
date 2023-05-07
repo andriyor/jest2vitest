@@ -64,12 +64,14 @@ export const getImports = (sourceFile: SourceFile) => {
         if (jestGlobalApis.includes(expressionText)) {
           api.push(expressionText);
         }
+        if (jestToVitestApiMap[expressionText]) {
+          api.push(jestToVitestApiMap[expressionText]);
+        }
       }
     }
   });
   return api;
 };
-
 
 const getFirstImportIndex = (sourceFile: SourceFile) => {
   sourceFile.forEachDescendant((node) => {
