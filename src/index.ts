@@ -90,6 +90,14 @@ const insertViteImport = (sourceFile: SourceFile) => {
           }
 
           if (propExpressionText === "jest") {
+            if (propExpressionName === "disableAutomock") {
+              const parent = node.getParent();
+              if (Node.isExpressionStatement(parent)) {
+                parent.remove();
+                return;
+              }
+            }
+
             propExpression.replaceWithText("vi");
             api.push("vi");
 
