@@ -46,7 +46,7 @@ export const migrate = (path: string) => {
   return project.save();
 };
 
-// migrate("test/__fixtures__/**/*.input.{tsx,ts,js,mjs}");
+// migrate("test/__fixtures__/**/*.input.{tsx,ts,js,mjs,mts}");
 
 // migrate("test/__fixtures__/misc/with-existing-imports.input.mjs");
 
