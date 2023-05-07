@@ -10,6 +10,7 @@ const project = new Project({
 const jestGlobalApis = ["afterAll", "afterEach", "beforeAll", "beforeEach", "describe", "test", "it", "expect"];
 
 const testApiProps = ["concurrent", "each", "only", "skip", "todo", "failing"];
+
 const jestGlobalApiProps: Record<string, string[]> = {
   describe: ["each", "only", "skip"],
   it: testApiProps,
@@ -61,17 +62,21 @@ const insertViteImport = (sourceFile: SourceFile) => {
           const propExpressionNested = propExpression.getExpression();
           if (Node.isIdentifier(propExpressionNested)) {
             const propExpressionText = propExpressionNested.getText();
-            const propExpressionName = expression.getName();
+            const expressionName = expression.getName();
+            const propExpressionName = propExpression.getName()
 
             if (propExpressionText === "it" ||  propExpressionText === 'test') {
-              if (propExpressionName === 'failing') {
+              if (expressionName === 'failing') {
                 expression.getNameNode().replaceWithText('fails');
+              }
+              if (propExpressionName === 'failing') {
+                propExpression.getNameNode().replaceWithText('fails');
               }
             }
 
             if (
               jestGlobalApiPropsKeys.includes(propExpressionText) &&
-              jestGlobalApiProps[propExpressionText].includes(propExpressionName)
+              jestGlobalApiProps[propExpressionText].includes(expressionName)
             ) {
               api.push(propExpressionText);
             }
@@ -96,11 +101,12 @@ const insertViteImport = (sourceFile: SourceFile) => {
 
           if (propExpressionText === "fit") {
             api.push("it");
-            if (propExpressionName === "failing") {
-              expression.replaceWithText("it.only.fails");
-            }
-            if (propExpressionName === "each") {
-              expression.replaceWithText("it.only.each");
+            propExpression.replaceWithText("it.only");
+          }
+
+          if (["fit", "it", "test"].includes(propExpressionText)) {
+            if (propExpressionName === 'failing') {
+              expression.getNameNode().replaceWithText('fails');
             }
           }
 
