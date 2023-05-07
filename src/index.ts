@@ -63,6 +63,12 @@ const insertViteImport = (sourceFile: SourceFile) => {
             const propExpressionText = propExpressionNested.getText();
             const propExpressionName = expression.getName();
 
+            if (propExpressionText === "it" ||  propExpressionText === 'test') {
+              if (propExpressionName === 'failing') {
+                expression.getNameNode().replaceWithText('fails');
+              }
+            }
+
             if (
               jestGlobalApiPropsKeys.includes(propExpressionText) &&
               jestGlobalApiProps[propExpressionText].includes(propExpressionName)
