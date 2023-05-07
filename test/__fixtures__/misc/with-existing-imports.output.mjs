@@ -2,7 +2,6 @@
  * Example comment which should not be replaced.
  */
 import { describe, test } from "vitest";
-
 import assert from 'node:assert';
 
 describe("basic", () => {
