@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "es2016",
+    "outDir": "build",
     "module": "commonjs",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
@@ -8,6 +9,5 @@
     "skipDefaultLibCheck": true,
     "skipLibCheck": true,
     "allowJs": true
-  },
-  "exclude": ["test"]
+  }
 }
