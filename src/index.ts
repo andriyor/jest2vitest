@@ -160,11 +160,42 @@ const getImports = (sourceFile: SourceFile) => {
   return api;
 };
 
+const replaceFit = (sourceFile: SourceFile) => {
+  sourceFile.forEachDescendant((node) => {
+    if (Node.isCallExpression(node)) {
+      const expression = node.getExpression();
+
+      handleFailing(node);
+
+      if (Node.isPropertyAccessExpression(expression)) {
+        const propExpression = expression.getExpression();
+
+        if (Node.isIdentifier(propExpression)) {
+          const propExpressionText = propExpression.getText();
+
+          if (propExpressionText === "fit") {
+            propExpression.replaceWithText("it.only");
+          }
+        }
+        return;
+      }
+
+      if (Node.isIdentifier(expression)) {
+        const expressionText = expression.getText();
+        if (expressionText === "fit") {
+          expression.replaceWithText("it.only");
+        }
+      }
+    }
+  });
+};
+
 const insertViteImport = (sourceFile: SourceFile) => {
   let firstImportNode = 0;
 
   const imports = getNamedImports(sourceFile);
   const api = getImports(sourceFile);
+  replaceFit(sourceFile);
 
   sourceFile.forEachDescendant((node) => {
     if (Node.isImportDeclaration(node)) {
@@ -201,10 +232,6 @@ const insertViteImport = (sourceFile: SourceFile) => {
           const propExpressionText = propExpression.getText();
           const propExpressionName = expression.getName();
 
-          if (propExpressionText === "fit") {
-            propExpression.replaceWithText("it.only");
-          }
-
           if (propExpressionText === "jest") {
             if (propExpressionName === "disableAutomock") {
               const parent = node.getParent();
@@ -220,13 +247,6 @@ const insertViteImport = (sourceFile: SourceFile) => {
           }
         }
         return;
-      }
-
-      if (Node.isIdentifier(expression)) {
-        const expressionText = expression.getText();
-        if (expressionText === "fit") {
-          expression.replaceWithText("it.only");
-        }
       }
     }
   });
