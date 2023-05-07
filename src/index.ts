@@ -1,4 +1,4 @@
-import { Project, SourceFile, Node, ImportDeclaration } from "ts-morph";
+import { Project, SourceFile, Node, ImportDeclaration, CallExpression, PropertyAccessExpression } from "ts-morph";
 import { intersect } from "set-fns";
 
 const argv = require("yargs-parser")(process.argv.slice(2));
@@ -30,10 +30,31 @@ const apiNamesRecord: Record<string, string> = {
 
 const apiNamesToMakeAsync = ["genMockFromModule", "createMockFromModule", "requireActual", "requireMock"];
 
+const handleApiNamesRecord = (node: CallExpression, expression: PropertyAccessExpression) => {
+  const propExpressionName = expression.getName();
+  if (apiNamesRecord[propExpressionName]) {
+    expression.getNameNode().replaceWithText(apiNamesRecord[propExpressionName]);
+
+    if (apiNamesToMakeAsync.includes(propExpressionName)) {
+      let parent = node.getParent();
+      while (!Node.isArrowFunction(parent)) {
+        parent = parent?.getParent();
+      }
+      if (Node.isArrowFunction(parent)) {
+        parent.setIsAsync(true);
+      }
+
+      const nodeParent = node.getParent();
+      if (Node.isVariableDeclaration(nodeParent)) {
+        nodeParent.setInitializer(`await ${node.getText()}`);
+      }
+    }
+  }
+};
+
 const insertViteImport = (sourceFile: SourceFile) => {
   const namedImport: string[] = [];
   const api: string[] = [];
-  const toRemove: ImportDeclaration[] = [];
   let firstImportNode = 0;
 
   sourceFile.forEachDescendant((node) => {
@@ -41,9 +62,11 @@ const insertViteImport = (sourceFile: SourceFile) => {
       if (!firstImportNode) {
         firstImportNode = node.getChildIndex();
       }
+
       const moduleSpecifierText = node.getModuleSpecifier().getText();
       if (moduleSpecifierText == '"@jest/globals"') {
-        toRemove.push(node);
+        node.remove();
+        return;
       }
     }
 
@@ -63,14 +86,14 @@ const insertViteImport = (sourceFile: SourceFile) => {
           if (Node.isIdentifier(propExpressionNested)) {
             const propExpressionText = propExpressionNested.getText();
             const expressionName = expression.getName();
-            const propExpressionName = propExpression.getName()
+            const propExpressionName = propExpression.getName();
 
-            if (propExpressionText === "it" ||  propExpressionText === 'test') {
-              if (expressionName === 'failing') {
-                expression.getNameNode().replaceWithText('fails');
+            if (propExpressionText === "it" || propExpressionText === "test") {
+              if (expressionName === "failing") {
+                expression.getNameNode().replaceWithText("fails");
               }
-              if (propExpressionName === 'failing') {
-                propExpression.getNameNode().replaceWithText('fails');
+              if (propExpressionName === "failing") {
+                propExpression.getNameNode().replaceWithText("fails");
               }
             }
 
@@ -105,8 +128,8 @@ const insertViteImport = (sourceFile: SourceFile) => {
           }
 
           if (["fit", "it", "test"].includes(propExpressionText)) {
-            if (propExpressionName === 'failing') {
-              expression.getNameNode().replaceWithText('fails');
+            if (propExpressionName === "failing") {
+              expression.getNameNode().replaceWithText("fails");
             }
           }
 
@@ -122,24 +145,7 @@ const insertViteImport = (sourceFile: SourceFile) => {
             propExpression.replaceWithText("vi");
             api.push("vi");
 
-            if (apiNamesRecord[propExpressionName]) {
-              expression.getNameNode().replaceWithText(apiNamesRecord[propExpressionName]);
-
-              if (apiNamesToMakeAsync.includes(propExpressionName)) {
-                let parent = node.getParent();
-                while (!Node.isArrowFunction(parent)) {
-                  parent = parent?.getParent();
-                }
-                if (Node.isArrowFunction(parent)) {
-                  parent.setIsAsync(true);
-                }
-
-                const nodeParent = node.getParent();
-                if (Node.isVariableDeclaration(nodeParent)) {
-                  nodeParent.setInitializer(`await ${node.getText()}`);
-                }
-              }
-            }
+            handleApiNamesRecord(node, expression);
           }
         }
         return;
@@ -155,8 +161,6 @@ const insertViteImport = (sourceFile: SourceFile) => {
     }
   });
 
-  toRemove.forEach((node) => node.remove());
-
   const intersection = intersect(namedImport, jestGlobalApis);
   const importDeclarationString = `import { ${[...new Set([...intersection, ...api])]
     .sort()
@@ -165,8 +169,6 @@ const insertViteImport = (sourceFile: SourceFile) => {
   // just for compatability of tests
   if (firstImportNode) {
     sourceFile.insertStatements(firstImportNode, `${importDeclarationString}\n`);
-  } else if (toRemove.length) {
-    sourceFile.insertStatements(firstImportNode, `${importDeclarationString}\n\n`);
   } else {
     sourceFile.insertStatements(firstImportNode, importDeclarationString);
   }
