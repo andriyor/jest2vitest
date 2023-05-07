@@ -1,14 +1,14 @@
-import { CallExpression, Node, PropertyAccessExpression } from "ts-morph";
+import { CallExpression, Node, PropertyAccessExpression } from 'ts-morph';
 
-const apiNamesToMakeAsync = ["genMockFromModule", "createMockFromModule", "requireActual", "requireMock"];
+const apiNamesToMakeAsync = ['genMockFromModule', 'createMockFromModule', 'requireActual', 'requireMock'];
 
 const apiNamesRecord: Record<string, string> = {
-  createMockFromModule: "importMock",
-  deepUnmock: "unmock",
-  genMockFromModule: "importMock",
-  requireActual: "importActual",
-  requireMock: "importMock",
-  setMock: "mock",
+  createMockFromModule: 'importMock',
+  deepUnmock: 'unmock',
+  genMockFromModule: 'importMock',
+  requireActual: 'importActual',
+  requireMock: 'importMock',
+  setMock: 'mock',
 };
 
 const handleApiNamesRecord = (node: CallExpression, expression: PropertyAccessExpression) => {
@@ -40,8 +40,8 @@ export const replaceJestWithVi = (node: CallExpression, expression: PropertyAcce
     if (Node.isIdentifier(propExpressionNested)) {
       const propExpressionText = propExpressionNested.getText();
 
-      if (propExpressionText === "jest") {
-        propExpressionNested.replaceWithText("vi");
+      if (propExpressionText === 'jest') {
+        propExpressionNested.replaceWithText('vi');
       }
     }
   }
@@ -50,8 +50,8 @@ export const replaceJestWithVi = (node: CallExpression, expression: PropertyAcce
     const propExpressionText = propExpression.getText();
     const propExpressionName = expression.getName();
 
-    if (propExpressionText === "jest") {
-      if (propExpressionName === "disableAutomock") {
+    if (propExpressionText === 'jest') {
+      if (propExpressionName === 'disableAutomock') {
         const parent = node.getParent();
         if (Node.isExpressionStatement(parent)) {
           parent.remove();
@@ -59,7 +59,7 @@ export const replaceJestWithVi = (node: CallExpression, expression: PropertyAcce
         }
       }
 
-      propExpression.replaceWithText("vi");
+      propExpression.replaceWithText('vi');
 
       handleApiNamesRecord(node, expression);
     }

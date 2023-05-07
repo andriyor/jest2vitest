@@ -1,11 +1,11 @@
-import { Node, LeftHandSideExpression, PropertyAccessExpression, SourceFile, ts } from "ts-morph";
+import { Node, LeftHandSideExpression, PropertyAccessExpression, SourceFile, ts, Statement } from 'ts-morph';
 
-const jestGlobalApis = ["afterAll", "afterEach", "beforeAll", "beforeEach", "describe", "test", "it", "expect", "vi"];
+const jestGlobalApis = ['afterAll', 'afterEach', 'beforeAll', 'beforeEach', 'describe', 'test', 'it', 'expect', 'vi'];
 
-const testApiProps = ["concurrent", "each", "only", "skip", "todo", "failing"];
+const testApiProps = ['concurrent', 'each', 'only', 'skip', 'todo', 'failing'];
 
 const jestGlobalApiProps: Record<string, string[]> = {
-  describe: ["each", "only", "skip"],
+  describe: ['each', 'only', 'skip'],
   it: testApiProps,
   test: testApiProps,
 };
@@ -13,8 +13,8 @@ const jestGlobalApiProps: Record<string, string[]> = {
 const jestGlobalApiPropsKeys = Object.keys(jestGlobalApiProps);
 
 const jestToVitestApiMap: Record<string, string> = {
-  fit: "it",
-  jest: "vi",
+  fit: 'it',
+  jest: 'vi',
 };
 
 const handleIdentifier = (
@@ -82,15 +82,26 @@ const getFirstImportIndex = (sourceFile: SourceFile) => {
   return 0;
 };
 
+const getCommentIndex = (sourceFile: SourceFile) => {
+  let lastComment;
+
+  for (const statement of sourceFile.getStatementsWithComments()) {
+    if (statement.isKind(ts.SyntaxKind.MultiLineCommentTrivia)) {
+      lastComment = statement;
+    } else {
+      break;
+    }
+  }
+
+  return lastComment ? lastComment.getChildIndex() + 1 : 0;
+};
+
 export const addImports = (sourceFile: SourceFile) => {
   const api = getImports(sourceFile);
-  const importDeclarationString = `import { ${[...new Set([...api])].sort().join(", ")} } from "vitest";`;
+  const importDeclarationString = `import { ${[...new Set([...api])].sort().join(', ')} } from "vitest";`;
 
   const firstImportIndex = getFirstImportIndex(sourceFile);
-  // just for compatability of tests
-  if (firstImportIndex) {
-    sourceFile.insertStatements(firstImportIndex, `${importDeclarationString}\n`);
-  } else {
-    sourceFile.insertStatements(firstImportIndex, importDeclarationString);
-  }
+  const commentIndex = getCommentIndex(sourceFile);
+  const insertIndex = Math.max(firstImportIndex, commentIndex);
+  sourceFile.insertStatements(insertIndex, importDeclarationString);
 };

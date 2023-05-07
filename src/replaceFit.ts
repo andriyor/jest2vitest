@@ -1,4 +1,4 @@
-import { Node, SourceFile } from "ts-morph";
+import { Node, SourceFile } from 'ts-morph';
 
 export const replaceFit = (sourceFile: SourceFile) => {
   sourceFile.forEachDescendant((node) => {
@@ -11,8 +11,8 @@ export const replaceFit = (sourceFile: SourceFile) => {
         if (Node.isIdentifier(propExpression)) {
           const propExpressionText = propExpression.getText();
 
-          if (propExpressionText === "fit") {
-            propExpression.replaceWithText("it.only");
+          if (propExpressionText === 'fit') {
+            propExpression.replaceWithText('it.only');
           }
         }
         return;
@@ -20,8 +20,8 @@ export const replaceFit = (sourceFile: SourceFile) => {
 
       if (Node.isIdentifier(expression)) {
         const expressionText = expression.getText();
-        if (expressionText === "fit") {
-          expression.replaceWithText("it.only");
+        if (expressionText === 'fit') {
+          expression.replaceWithText('it.only');
         }
       }
     }

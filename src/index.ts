@@ -1,24 +1,15 @@
-import {
-  ts,
-  Project,
-  SourceFile,
-  Node,
-  CallExpression,
-  PropertyAccessExpression,
-  LeftHandSideExpression,
-} from "ts-morph";
+import { Project, SourceFile, Node } from 'ts-morph';
 
-import { replaceFalling } from "./replaceFalling";
-import { replaceFit } from "./replaceFit";
-import { addImports } from "./addImports";
-import { replaceJestWithVi } from "./replaceJestWithVi";
+import { replaceFalling } from './replaceFalling';
+import { replaceFit } from './replaceFit';
+import { addImports } from './addImports';
+import { replaceJestWithVi } from './replaceJestWithVi';
 
-const argv = require("yargs-parser")(process.argv.slice(2));
+const argv = require('yargs-parser')(process.argv.slice(2));
 
 const project = new Project({
-  tsConfigFilePath: "tsconfig.json",
+  tsConfigFilePath: 'tsconfig.json',
 });
-
 
 const insertViteImport = (sourceFile: SourceFile) => {
   addImports(sourceFile);
@@ -48,10 +39,7 @@ const insertViteImport = (sourceFile: SourceFile) => {
 export const migrate = (path: string) => {
   const sourceFiles = project.getSourceFiles(path);
 
-  console.log(sourceFiles.length);
-
   for (const sourceFile of sourceFiles) {
-    console.log(sourceFile.getFilePath());
     insertViteImport(sourceFile);
   }
 
@@ -61,3 +49,5 @@ export const migrate = (path: string) => {
 // migrate("test/__fixtures__/**/*.input.{tsx,ts,js,mjs}");
 
 // migrate("test/__fixtures__/misc/with-existing-imports.input.mjs");
+
+// migrate("test/__fixtures__/misc/with-top-line-comment.input.js");

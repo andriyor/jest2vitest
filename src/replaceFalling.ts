@@ -1,4 +1,4 @@
-import { CallExpression, Node } from "ts-morph";
+import { CallExpression, Node } from 'ts-morph';
 
 export const replaceFalling = (node: CallExpression) => {
   const expression = node.getExpression();
@@ -12,12 +12,12 @@ export const replaceFalling = (node: CallExpression) => {
         const expressionName = expression.getName();
         const propExpressionName = propExpression.getName();
 
-        if (propExpressionText === "it" || propExpressionText === "test") {
-          if (expressionName === "failing") {
-            expression.getNameNode().replaceWithText("fails");
+        if (propExpressionText === 'it' || propExpressionText === 'test') {
+          if (expressionName === 'failing') {
+            expression.getNameNode().replaceWithText('fails');
           }
-          if (propExpressionName === "failing") {
-            propExpression.getNameNode().replaceWithText("fails");
+          if (propExpressionName === 'failing') {
+            propExpression.getNameNode().replaceWithText('fails');
           }
         }
       }
@@ -27,9 +27,9 @@ export const replaceFalling = (node: CallExpression) => {
       const propExpressionText = propExpression.getText();
       const propExpressionName = expression.getName();
 
-      if (["fit", "it", "test"].includes(propExpressionText)) {
-        if (propExpressionName === "failing") {
-          expression.getNameNode().replaceWithText("fails");
+      if (['fit', 'it', 'test'].includes(propExpressionText)) {
+        if (propExpressionName === 'failing') {
+          expression.getNameNode().replaceWithText('fails');
         }
       }
     }
