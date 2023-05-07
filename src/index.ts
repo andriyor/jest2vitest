@@ -7,12 +7,11 @@ const project = new Project({
   tsConfigFilePath: "tsconfig.json",
 });
 
-const jestGlobalApis = ["afterAll", "afterEach", "beforeAll", "beforeEach", "describe", "test", "it", "fit", "expect"];
+const jestGlobalApis = ["afterAll", "afterEach", "beforeAll", "beforeEach", "describe", "test", "it", "expect"];
 
 const testApiProps = ["concurrent", "each", "only", "skip", "todo", "failing"];
 const jestGlobalApiProps: Record<string, string[]> = {
   describe: ["each", "only", "skip"],
-  fit: ["each", "failing"],
   it: testApiProps,
   test: testApiProps,
 };
@@ -89,6 +88,16 @@ const insertViteImport = (sourceFile: SourceFile) => {
             api.push(propExpressionText);
           }
 
+          if (propExpressionText === "fit") {
+            api.push("it");
+            if (propExpressionName === "failing") {
+              expression.replaceWithText("it.only.fails");
+            }
+            if (propExpressionName === "each") {
+              expression.replaceWithText("it.only.each");
+            }
+          }
+
           if (propExpressionText === "jest") {
             if (propExpressionName === "disableAutomock") {
               const parent = node.getParent();
@@ -120,6 +129,15 @@ const insertViteImport = (sourceFile: SourceFile) => {
               }
             }
           }
+        }
+        return;
+      }
+
+      if (Node.isIdentifier(expression)) {
+        const expressionText = expression.getText();
+        if (expressionText === "fit") {
+          api.push("it");
+          expression.replaceWithText("it.only");
         }
       }
     }
