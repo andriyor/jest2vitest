@@ -52,50 +52,68 @@ const handleApiNamesRecord = (node: CallExpression, expression: PropertyAccessEx
   }
 };
 
-const insertViteImport = (sourceFile: SourceFile) => {
-  const namedImport: string[] = [];
-  const api: string[] = [];
-  let firstImportNode = 0;
+const handleFailing = (node: CallExpression) => {
+  const expression = node.getExpression();
 
-  sourceFile.forEachDescendant((node) => {
-    if (Node.isImportDeclaration(node)) {
-      if (!firstImportNode) {
-        firstImportNode = node.getChildIndex();
-      }
+  if (Node.isPropertyAccessExpression(expression)) {
+    const propExpression = expression.getExpression();
+    if (Node.isPropertyAccessExpression(propExpression)) {
+      const propExpressionNested = propExpression.getExpression();
+      if (Node.isIdentifier(propExpressionNested)) {
+        const propExpressionText = propExpressionNested.getText();
+        const expressionName = expression.getName();
+        const propExpressionName = propExpression.getName();
 
-      const moduleSpecifierText = node.getModuleSpecifier().getText();
-      if (moduleSpecifierText == '"@jest/globals"') {
-        node.remove();
-        return;
+        if (propExpressionText === "it" || propExpressionText === "test") {
+          if (expressionName === "failing") {
+            expression.getNameNode().replaceWithText("fails");
+          }
+          if (propExpressionName === "failing") {
+            propExpression.getNameNode().replaceWithText("fails");
+          }
+        }
       }
     }
 
+    if (Node.isIdentifier(propExpression)) {
+      const propExpressionText = propExpression.getText();
+      const propExpressionName = expression.getName();
+
+      if (["fit", "it", "test"].includes(propExpressionText)) {
+        if (propExpressionName === "failing") {
+          expression.getNameNode().replaceWithText("fails");
+        }
+      }
+    }
+  }
+};
+
+const getNamedImports = (sourceFile: SourceFile) => {
+  const namedImport: string[] = [];
+  sourceFile.forEachDescendant((node) => {
     if (Node.isCallExpression(node)) {
       const expression = node.getExpression();
       if (Node.isIdentifier(expression)) {
         const expressionText = expression.getText();
         namedImport.push(expressionText);
       }
+    }
+  });
+  return intersect(namedImport, jestGlobalApis);
+};
 
+const getImports = (sourceFile: SourceFile) => {
+  const api: string[] = [];
+  sourceFile.forEachDescendant((node) => {
+    if (Node.isCallExpression(node)) {
+      const expression = node.getExpression();
       if (Node.isPropertyAccessExpression(expression)) {
         const propExpression = expression.getExpression();
-
-        // TODO: create functions
         if (Node.isPropertyAccessExpression(propExpression)) {
           const propExpressionNested = propExpression.getExpression();
           if (Node.isIdentifier(propExpressionNested)) {
             const propExpressionText = propExpressionNested.getText();
             const expressionName = expression.getName();
-            const propExpressionName = propExpression.getName();
-
-            if (propExpressionText === "it" || propExpressionText === "test") {
-              if (expressionName === "failing") {
-                expression.getNameNode().replaceWithText("fails");
-              }
-              if (propExpressionName === "failing") {
-                propExpression.getNameNode().replaceWithText("fails");
-              }
-            }
 
             if (
               jestGlobalApiPropsKeys.includes(propExpressionText) &&
@@ -105,7 +123,6 @@ const insertViteImport = (sourceFile: SourceFile) => {
             }
 
             if (propExpressionText === "jest") {
-              propExpressionNested.replaceWithText("vi");
               api.push("vi");
             }
           }
@@ -124,13 +141,68 @@ const insertViteImport = (sourceFile: SourceFile) => {
 
           if (propExpressionText === "fit") {
             api.push("it");
-            propExpression.replaceWithText("it.only");
           }
 
-          if (["fit", "it", "test"].includes(propExpressionText)) {
-            if (propExpressionName === "failing") {
-              expression.getNameNode().replaceWithText("fails");
+          if (propExpressionText === "jest") {
+            api.push("vi");
+          }
+        }
+      }
+
+      if (Node.isIdentifier(expression)) {
+        const expressionText = expression.getText();
+        if (expressionText === "fit") {
+          api.push("it");
+        }
+      }
+    }
+  });
+  return api;
+};
+
+const insertViteImport = (sourceFile: SourceFile) => {
+  let firstImportNode = 0;
+
+  const imports = getNamedImports(sourceFile);
+  const api = getImports(sourceFile);
+
+  sourceFile.forEachDescendant((node) => {
+    if (Node.isImportDeclaration(node)) {
+      if (!firstImportNode) {
+        firstImportNode = node.getChildIndex();
+      }
+
+      const moduleSpecifierText = node.getModuleSpecifier().getText();
+      if (moduleSpecifierText == '"@jest/globals"') {
+        node.remove();
+        return;
+      }
+    }
+
+    if (Node.isCallExpression(node)) {
+      const expression = node.getExpression();
+
+      handleFailing(node);
+
+      if (Node.isPropertyAccessExpression(expression)) {
+        const propExpression = expression.getExpression();
+        if (Node.isPropertyAccessExpression(propExpression)) {
+          const propExpressionNested = propExpression.getExpression();
+          if (Node.isIdentifier(propExpressionNested)) {
+            const propExpressionText = propExpressionNested.getText();
+
+            if (propExpressionText === "jest") {
+              propExpressionNested.replaceWithText("vi");
             }
+          }
+        }
+
+        if (Node.isIdentifier(propExpression)) {
+          const propExpressionText = propExpression.getText();
+          const propExpressionName = expression.getName();
+
+          if (propExpressionText === "fit") {
+            propExpression.replaceWithText("it.only");
           }
 
           if (propExpressionText === "jest") {
@@ -143,7 +215,6 @@ const insertViteImport = (sourceFile: SourceFile) => {
             }
 
             propExpression.replaceWithText("vi");
-            api.push("vi");
 
             handleApiNamesRecord(node, expression);
           }
@@ -154,17 +225,13 @@ const insertViteImport = (sourceFile: SourceFile) => {
       if (Node.isIdentifier(expression)) {
         const expressionText = expression.getText();
         if (expressionText === "fit") {
-          api.push("it");
           expression.replaceWithText("it.only");
         }
       }
     }
   });
 
-  const intersection = intersect(namedImport, jestGlobalApis);
-  const importDeclarationString = `import { ${[...new Set([...intersection, ...api])]
-    .sort()
-    .join(", ")} } from "vitest";`;
+  const importDeclarationString = `import { ${[...new Set([...imports, ...api])].sort().join(", ")} } from "vitest";`;
 
   // just for compatability of tests
   if (firstImportNode) {
