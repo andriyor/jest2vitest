@@ -1,4 +1,12 @@
-import { Node, LeftHandSideExpression, PropertyAccessExpression, SourceFile, ts, Statement } from 'ts-morph';
+import {
+  Node,
+  LeftHandSideExpression,
+  PropertyAccessExpression,
+  SourceFile,
+  ts,
+  Statement,
+  SyntaxKind,
+} from 'ts-morph';
 
 const jestGlobalApis = ['afterAll', 'afterEach', 'beforeAll', 'beforeEach', 'describe', 'test', 'it', 'expect', 'vi'];
 
@@ -40,36 +48,29 @@ const handleIdentifier = (
 
 export const getImports = (sourceFile: SourceFile) => {
   const api: string[] = [];
-  sourceFile.forEachDescendant((node) => {
-    if (Node.isCallExpression(node)) {
-      const expression = node.getExpression();
-      if (Node.isPropertyAccessExpression(expression)) {
-        const propExpression = expression.getExpression();
-        if (Node.isPropertyAccessExpression(propExpression)) {
-          const propExpressionNested = propExpression.getExpression();
-          const res = handleIdentifier(propExpressionNested, expression);
-          if (res) {
-            api.push(res);
-          }
-        }
+  const propertyAccessExpressions = sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression);
+  propertyAccessExpressions.forEach((propertyAccessExpressions) => {
+    const expression = propertyAccessExpressions.getExpression();
+    const res = handleIdentifier(expression, propertyAccessExpressions);
+    if (res) {
+      api.push(res);
+    }
+  });
 
-        const res = handleIdentifier(propExpression, expression);
-        if (res) {
-          api.push(res);
-        }
+  const callExpressions = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression);
+  callExpressions.forEach((callExpression) => {
+    const expression = callExpression.getExpression();
+    if (Node.isIdentifier(expression)) {
+      const expressionText = expression.getText();
+      if (jestGlobalApis.includes(expressionText)) {
+        api.push(expressionText);
       }
-
-      if (Node.isIdentifier(expression)) {
-        const expressionText = expression.getText();
-        if (jestGlobalApis.includes(expressionText)) {
-          api.push(expressionText);
-        }
-        if (jestToVitestApiMap[expressionText]) {
-          api.push(jestToVitestApiMap[expressionText]);
-        }
+      if (jestToVitestApiMap[expressionText]) {
+        api.push(jestToVitestApiMap[expressionText]);
       }
     }
   });
+  
   return api;
 };
 
