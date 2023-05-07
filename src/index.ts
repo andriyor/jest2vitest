@@ -16,7 +16,19 @@ const jestGlobalApiProps: Record<string, string[]> = {
   it: testApiProps,
   test: testApiProps,
 };
+
 const jestGlobalApiPropsKeys = Object.keys(jestGlobalApiProps);
+
+const apiNamesRecord: Record<string, string> = {
+  createMockFromModule: "importMock",
+  deepUnmock: "unmock",
+  genMockFromModule: "importMock",
+  requireActual: "importActual",
+  requireMock: "importMock",
+  setMock: "mock",
+};
+
+const apiNamesToMakeAsync = ["genMockFromModule", "createMockFromModule", "requireActual", "requireMock"];
 
 const insertViteImport = (sourceFile: SourceFile) => {
   const namedImport: string[] = [];
@@ -45,23 +57,6 @@ const insertViteImport = (sourceFile: SourceFile) => {
       if (Node.isPropertyAccessExpression(expression)) {
         const propExpression = expression.getExpression();
 
-        if (Node.isIdentifier(propExpression)) {
-          const propExpressionText = propExpression.getText();
-          const propExpressionName = expression.getName();
-
-          if (
-            jestGlobalApiPropsKeys.includes(propExpressionText) &&
-            jestGlobalApiProps[propExpressionText].includes(propExpressionName)
-          ) {
-            api.push(propExpressionText);
-          }
-
-          if (propExpressionText === "jest") {
-            propExpression.replaceWithText("vi");
-            api.push("vi");
-          }
-        }
-
         // TODO: create functions
         if (Node.isPropertyAccessExpression(propExpression)) {
           const propExpressionNested = propExpression.getExpression();
@@ -79,6 +74,42 @@ const insertViteImport = (sourceFile: SourceFile) => {
             if (propExpressionText === "jest") {
               propExpressionNested.replaceWithText("vi");
               api.push("vi");
+            }
+          }
+        }
+
+        if (Node.isIdentifier(propExpression)) {
+          const propExpressionText = propExpression.getText();
+          const propExpressionName = expression.getName();
+
+          if (
+            jestGlobalApiPropsKeys.includes(propExpressionText) &&
+            jestGlobalApiProps[propExpressionText].includes(propExpressionName)
+          ) {
+            api.push(propExpressionText);
+          }
+
+          if (propExpressionText === "jest") {
+            propExpression.replaceWithText("vi");
+            api.push("vi");
+
+            if (apiNamesRecord[propExpressionName]) {
+              expression.getNameNode().replaceWithText(apiNamesRecord[propExpressionName]);
+
+              if (apiNamesToMakeAsync.includes(propExpressionName)) {
+                let parent = node.getParent();
+                while (!Node.isArrowFunction(parent)) {
+                  parent = parent?.getParent();
+                }
+                if (Node.isArrowFunction(parent)) {
+                  parent.setIsAsync(true);
+                }
+
+                const nodeParent = node.getParent();
+                if (Node.isVariableDeclaration(nodeParent)) {
+                  nodeParent.setInitializer(`await ${node.getText()}`);
+                }
+              }
             }
           }
         }
