@@ -4,7 +4,6 @@ import {
   PropertyAccessExpression,
   SourceFile,
   ts,
-  Statement,
   SyntaxKind,
 } from 'ts-morph';
 
