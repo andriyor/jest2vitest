@@ -40,7 +40,7 @@ const handleIdentifier = (
       return propExpressionText;
     }
 
-    if (jestToVitestApiMap[propExpressionText]) {
+    if (jestToVitestApiMap[propExpressionText] && expressionName !== 'disableAutomock') {
       return jestToVitestApiMap[propExpressionText];
     }
   }
@@ -70,7 +70,7 @@ export const getImports = (sourceFile: SourceFile) => {
       }
     }
   });
-  
+
   return api;
 };
 
