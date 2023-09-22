@@ -35,7 +35,7 @@ const insertViteImport = (sourceFile: SourceFile) => {
           console.log(node.getArguments());
           const [moduleName, mock] = node.getArguments();
           if (Node.isArrowFunction(mock)) {
-            mock.getBody().replaceWithText(`({ default: ${mock.getBody().getText()} })`).formatText()
+            mock.getBody().replaceWithText(`({ default: ${mock.getBody().getText()} })`);
           }
         }
 
