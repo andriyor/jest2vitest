@@ -1,14 +1,14 @@
-import { Project, SourceFile, Node } from 'ts-morph';
+import { Project, SourceFile, Node } from "ts-morph";
 
-import { replaceFalling } from './replaceFalling';
-import { replaceFit } from './replaceFit';
-import { addImports } from './addImports';
-import { replaceJestWithVi } from './replaceJestWithVi';
+import { replaceFalling } from "./replaceFalling";
+import { replaceFit } from "./replaceFit";
+import { addImports } from "./addImports";
+import { replaceJestWithVi } from "./replaceJestWithVi";
 
-const argv = require('yargs-parser')(process.argv.slice(2));
+const argv = require("yargs-parser")(process.argv.slice(2));
 
 const project = new Project({
-  tsConfigFilePath: 'tsconfig.json',
+  tsConfigFilePath: "tsconfig.json",
 });
 
 const insertViteImport = (sourceFile: SourceFile) => {
@@ -30,12 +30,28 @@ const insertViteImport = (sourceFile: SourceFile) => {
       replaceFalling(node);
 
       if (Node.isPropertyAccessExpression(expression)) {
-        if (expression.getName() === 'mock') {
-          console.log(expression.getName());
-          console.log(node.getArguments());
+        if (expression.getName() === "mock") {
           const [moduleName, mock] = node.getArguments();
           if (Node.isArrowFunction(mock)) {
-            mock.getBody().replaceWithText(`({ default: ${mock.getBody().getText()} })`);
+            mock
+              .getBody()
+              .replaceWithText(`({ default: ${mock.getBody().getText()} })`);
+          }
+          if (Node.isFunctionExpression(mock)) {
+            const functionBody = mock.getBody();
+            if (Node.isBlock(functionBody)) {
+              const functionStatements = functionBody.getStatements();
+              const returnStatement =
+                functionStatements[functionStatements.length - 1];
+              if (Node.isReturnStatement(returnStatement)) {
+                const returnExpression = returnStatement.getExpression();
+                if (returnExpression) {
+                  returnExpression.replaceWithText(
+                    `{ default: ${returnExpression.getText()} }`
+                  );
+                }
+              }
+            }
           }
         }
 
