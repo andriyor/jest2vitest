@@ -5,7 +5,7 @@
     "plugin:@typescript-eslint/recommended-requiring-type-checking"
   ],
   "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint"],
+  "plugins": ["@typescript-eslint", "@stylistic/ts"],
   "parserOptions": {
     "project": true,
     "tsconfigRootDir": "__dirname"

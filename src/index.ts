@@ -30,6 +30,15 @@ const insertViteImport = (sourceFile: SourceFile) => {
       replaceFalling(node);
 
       if (Node.isPropertyAccessExpression(expression)) {
+        if (expression.getName() === 'mock') {
+          console.log(expression.getName());
+          console.log(node.getArguments());
+          const [moduleName, mock] = node.getArguments();
+          if (Node.isArrowFunction(mock)) {
+            mock.getBody().replaceWithText(`({ default: ${mock.getBody().getText()} })`).formatText()
+          }
+        }
+
         replaceJestWithVi(node, expression);
       }
     }
