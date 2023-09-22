@@ -33,9 +33,11 @@ const insertViteImport = (sourceFile: SourceFile) => {
         if (expression.getName() === "mock") {
           const [moduleName, mock] = node.getArguments();
           if (Node.isArrowFunction(mock)) {
-            mock
-              .getBody()
-              .replaceWithText(`({ default: ${mock.getBody().getText()} })`);
+            const functionBody = mock.getBody();
+            if (Node.isStringLiteral(functionBody)) {
+              functionBody
+                .replaceWithText(`({ default: ${functionBody.getText()} })`);
+            }
           }
           if (Node.isFunctionExpression(mock)) {
             const functionBody = mock.getBody();
