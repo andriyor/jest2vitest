@@ -35,7 +35,7 @@ const insertViteImport = (sourceFile: SourceFile) => {
           const [moduleName, mock] = node.getArguments();
           if (Node.isStringLiteral(mock)) {
             mock
-              .replaceWithText(`() => ({ default: ${mock.getText()} }))`);
+              .replaceWithText(`() => ({ default: ${mock.getText()} })`);
           }
         }
         if (expressionName === "mock") {
