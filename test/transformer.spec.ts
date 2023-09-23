@@ -9,11 +9,11 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { migrateFile } from '../src';
 
-afterEach(async () => {
-  await exec("git stash push -- test/__fixtures__");
-});
-
 describe('transformer', () => {
+  afterEach(async () => {
+    await exec("git stash push -- test/__fixtures__");
+  });
+
   const inputFileRegex = /(.*).input.m?[jt]sx?$/;
   const errorFileRegex = /(.*).error.m?[jt]sx?$/;
 
@@ -33,9 +33,8 @@ describe('transformer', () => {
 
   describe.each(fixtureSubDirs)('%s', (subDir) => {
     const subDirPath = path.join(fixtureDir, subDir);
-    console.log(getTestFileMetadata(subDirPath, inputFileRegex));
 
-    it.concurrent.each(getTestFileMetadata(subDirPath, inputFileRegex))(
+    it.each(getTestFileMetadata(subDirPath, inputFileRegex))(
       'transforms: %s.%s',
       async (filePrefix, fileExtension) => {
         const inputFileName = [filePrefix, 'input', fileExtension].join('.');
@@ -50,15 +49,18 @@ describe('transformer', () => {
       60000
     );
 
-    it.concurrent.each(getTestFileMetadata(subDirPath, errorFileRegex))(
-      'throws: %s.%s',
-      async (filePrefix, fileExtension) => {
-        const inputFileName = [filePrefix, 'error', fileExtension].join('.')
+    const errors = getTestFileMetadata(subDirPath, errorFileRegex);
+    if (errors.length) {
+      it.each(getTestFileMetadata(subDirPath, errorFileRegex).filter(list => list.length))(
+        'throws: %s.%s',
+        async (filePrefix, fileExtension) => {
+          const inputFileName = [filePrefix, 'error', fileExtension].join('.')
 
-        expect(
-          () => migrateFile(path.join(subDirPath, inputFileName))
-        ).toThrow()
-      },
-    )
+          expect(
+            () => migrateFile(path.join(subDirPath, inputFileName))
+          ).toThrow()
+        },
+      )
+    }
   });
 });
