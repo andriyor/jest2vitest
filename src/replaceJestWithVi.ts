@@ -13,6 +13,16 @@ const apiNamesRecord: Record<string, string> = {
 
 const handleApiNamesRecord = (node: CallExpression, expression: PropertyAccessExpression) => {
   const propExpressionName = expression.getName();
+
+  console.log('propExpressionName');
+  console.log(propExpressionName);
+  if (propExpressionName === 'enableAutomock') {
+    throw new Error(
+      `The automocking API "${propExpressionName}" is not supported in vitest.\n`
+      + 'See https://vitest.dev/guide/migration.html',
+    )
+  }
+
   if (apiNamesRecord[propExpressionName]) {
     expression.getNameNode().replaceWithText(apiNamesRecord[propExpressionName]);
 

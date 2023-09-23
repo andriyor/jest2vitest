@@ -27,7 +27,7 @@ describe('transformer', () => {
         (fileName) => [(fileName.match(fileRegex) as RegExpMatchArray)[1], fileName.split('.').pop() as string] as const
       );
 
-  const getTestFileOutputCode = async (dirPath: string, fileName: string) => readFile(path.join(dirPath, fileName), 'utf8');
+  const getTestFileCode = async (dirPath: string, fileName: string) => readFile(path.join(dirPath, fileName), 'utf8');
 
   describe.each(fixtureSubDirs)('%s', (subDir) => {
     const subDirPath = path.join(fixtureDir, subDir);
@@ -40,30 +40,24 @@ describe('transformer', () => {
         const outputFileName = [filePrefix, 'output', fileExtension].join('.');
 
         await migrateFile(path.join(subDirPath, inputFileName))!.save();
-        const input = await getTestFileOutputCode(subDirPath, inputFileName);
+        const input = await getTestFileCode(subDirPath, inputFileName);
 
-        const outputCode = await getTestFileOutputCode(subDirPath, outputFileName);
+        const outputCode = await getTestFileCode(subDirPath, outputFileName);
         expect(input.trim()).toEqual(outputCode.trim());
       },
       60000
     );
 
-    // it.concurrent.each(getTestFileMetadata(subDirPath, errorFileRegex))(
-    //   'throws: %s.%s',
-    //   async (filePrefix, fileExtension) => {
-    //     const inputFileName = [filePrefix, 'error', fileExtension].join('.')
-    //     const input = await getTestFileInput(subDirPath, inputFileName)
+    it.concurrent.each(getTestFileMetadata(subDirPath, errorFileRegex))(
+      'throws: %s.%s',
+      async (filePrefix, fileExtension) => {
+        const inputFileName = [filePrefix, 'error', fileExtension].join('.')
 
-    //     await expect(
-    //       transform(input, {
-    //         j: jscodeshift,
-    //         jscodeshift,
-    //         stats: () => {},
-    //         report: () => {},
-    //       }),
-    //     ).rejects.toThrowError()
-    //   },
-    // )
+        expect(
+          () => migrateFile(path.join(subDirPath, inputFileName))
+        ).toThrow()
+      },
+    )
   });
 
   //   describe('.snap', () => {
