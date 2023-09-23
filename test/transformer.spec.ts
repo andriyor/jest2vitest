@@ -1,18 +1,21 @@
 import { readdirSync } from 'fs';
 import { readFile } from 'fs/promises';
-import { join } from 'path';
-import { beforeAll, describe, expect, it } from 'vitest';
-import { migrate } from '../src';
+import path from 'path';
+import { afterEach, describe, expect, it } from 'vitest';
+import util from "node:util";
+const exec = util.promisify(require("node:child_process").exec);
 
-beforeAll(async () => {
-  await migrate('test/__fixtures__/**/*.input.{tsx,ts,js,mjs,mts}');
+import { migrateFile } from '../src';
+
+afterEach(async () => {
+  await exec("git stash push -- test/__fixtures__");
 });
 
 describe('transformer', () => {
   const inputFileRegex = /(.*).input.m?[jt]sx?$/;
   const errorFileRegex = /(.*).error.m?[jt]sx?$/;
 
-  const fixtureDir = join(__dirname, '__fixtures__');
+  const fixtureDir = path.join(__dirname, '__fixtures__');
   const fixtureSubDirs = readdirSync(fixtureDir, { withFileTypes: true })
     .filter((dirent) => dirent.isDirectory())
     .map((dirent) => dirent.name);
@@ -24,16 +27,11 @@ describe('transformer', () => {
         (fileName) => [(fileName.match(fileRegex) as RegExpMatchArray)[1], fileName.split('.').pop() as string] as const
       );
 
-  const getTestFileInput = async (dirPath: string, fileName: string) => {
-    const inputPath = join(dirPath, fileName);
-    const inputCode = await readFile(inputPath, 'utf8');
-    return { path: inputPath, source: inputCode };
-  };
-
-  const getTestFileOutputCode = async (dirPath: string, fileName: string) => readFile(join(dirPath, fileName), 'utf8');
+  const getTestFileOutputCode = async (dirPath: string, fileName: string) => readFile(path.join(dirPath, fileName), 'utf8');
 
   describe.each(fixtureSubDirs)('%s', (subDir) => {
-    const subDirPath = join(fixtureDir, subDir);
+    const subDirPath = path.join(fixtureDir, subDir);
+    console.log(getTestFileMetadata(subDirPath, inputFileRegex));
 
     it.concurrent.each(getTestFileMetadata(subDirPath, inputFileRegex))(
       'transforms: %s.%s',
@@ -41,9 +39,10 @@ describe('transformer', () => {
         const inputFileName = [filePrefix, 'input', fileExtension].join('.');
         const outputFileName = [filePrefix, 'output', fileExtension].join('.');
 
+        await migrateFile(path.join(subDirPath, inputFileName))!.save();
         const input = await getTestFileOutputCode(subDirPath, inputFileName);
-        const outputCode = await getTestFileOutputCode(subDirPath, outputFileName);
 
+        const outputCode = await getTestFileOutputCode(subDirPath, outputFileName);
         expect(input.trim()).toEqual(outputCode.trim());
       },
       60000

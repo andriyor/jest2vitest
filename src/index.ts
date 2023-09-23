@@ -38,6 +38,14 @@ const insertViteImport = (sourceFile: SourceFile) => {
   });
 };
 
+export const migrateFile = (filePath: string) => {
+  const sourceFile = project.getSourceFile(filePath);
+  if (sourceFile) {
+    insertViteImport(sourceFile);
+  }
+  return sourceFile;
+}
+
 export const migrate = (path: string) => {
   const sourceFiles = project.getSourceFiles(path);
 
@@ -52,4 +60,4 @@ export const migrate = (path: string) => {
 
 // migrate("test/__fixtures__/misc/with-existing-imports.input.mjs");
 
-// migrate("test/__fixtures__/misc/with-top-line-comment.input.js");
+// migrate("test/__fixtures__/misc/with-top-line-comment.input.ts");
