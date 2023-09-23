@@ -1,9 +1,11 @@
 import { readdirSync } from 'fs';
-import { readFile } from 'fs/promises';
+import fs from 'fs/promises';
 import path from 'path';
-import { afterEach, describe, expect, it } from 'vitest';
+
 import util from "node:util";
 const exec = util.promisify(require("node:child_process").exec);
+
+import { afterEach, describe, expect, it } from 'vitest';
 
 import { migrateFile } from '../src';
 
@@ -27,7 +29,7 @@ describe('transformer', () => {
         (fileName) => [(fileName.match(fileRegex) as RegExpMatchArray)[1], fileName.split('.').pop() as string] as const
       );
 
-  const getTestFileCode = async (dirPath: string, fileName: string) => readFile(path.join(dirPath, fileName), 'utf8');
+  const getTestFileCode = async (dirPath: string, fileName: string) => fs.readFile(path.join(dirPath, fileName), 'utf8');
 
   describe.each(fixtureSubDirs)('%s', (subDir) => {
     const subDirPath = path.join(fixtureDir, subDir);
@@ -59,50 +61,4 @@ describe('transformer', () => {
       },
     )
   });
-
-  //   describe('.snap', () => {
-  //     it.each([
-  //       [
-  //         'Empty array',
-  //         'exports[`snapshot 1`] = `Array []`;',
-  //         'exports[`snapshot 1`] = `[]`;',
-  //       ],
-  //       [
-  //         'Empty object',
-  //         'exports[`snapshot 1`] = `Object {}`;',
-  //         'exports[`snapshot 1`] = `{}`;',
-  //       ],
-  //       [
-  //         'Nested array+object',
-  //         `exports[\`snapshot 1\`] = \`
-  //           Array [
-  //             Object {
-  //               "foo": "bar",
-  //             },
-  //           ]
-  //           \`;`,
-  //         `exports[\`snapshot 1\`] = \`
-  //           [
-  //             {
-  //               "foo": "bar",
-  //             },
-  //           ]
-  //           \`;`,
-  //       ],
-  //     ])('%s', async (testName, inputCode, outputCode) => {
-  //       const input = {
-  //         path: 'test.js.snap',
-  //         source: inputCode,
-  //       }
-
-  //       const output = await transform(input, {
-  //         j: jscodeshift,
-  //         jscodeshift,
-  //         stats: () => {},
-  //         report: () => {},
-  //       })
-
-  //       expect(output.trim()).toEqual(outputCode)
-  //     })
-  //   })
 });
